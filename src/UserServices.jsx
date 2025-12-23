@@ -1,87 +1,74 @@
 import { useEffect, useState } from "react";
-import { collection, getDocs, addDoc, serverTimestamp } from "firebase/firestore";
-import { db, auth } from "./firebase"; // ⚠️ change path if firebase.js is elsewhere
+import { useNavigate } from "react-router-dom";
+import { logout } from "../auth";
+import { getProducts } from "../firestore/products";
+import { collection, getDocs } from "firebase/firestore";
+import { db } from "../firebase";
+import "./dashboard.css";
 
-const UserServices = () => {
+const UserPage = () => {
+  const navigate = useNavigate();
+
+  const [products, setProducts] = useState([]);
   const [services, setServices] = useState([]);
-  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    getProducts().then(setProducts);
+  }, []);
 
   useEffect(() => {
     const fetchServices = async () => {
-      try {
-        const snapshot = await getDocs(collection(db, "services"));
-
-        console.log("SNAPSHOT SIZE:", snapshot.size);
-
-        const data = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-
-        console.log("SERVICES DATA:", data);
-
-        setServices(data);
-      } catch (error) {
-        console.error("Error fetching services:", error);
-      } finally {
-        setLoading(false);
-      }
+      const snapshot = await getDocs(collection(db, "services"));
+      const data = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setServices(data);
     };
 
     fetchServices();
   }, []);
 
-  const useService = async (service) => {
-    try {
-      await addDoc(collection(db, "service_usage"), {
-        serviceId: service.id,
-        serviceName: service.name,
-        userId: auth.currentUser?.uid || "anonymous",
-        usedAt: serverTimestamp(),
-      });
-
-      alert("Service used & logged!");
-    } catch (error) {
-      console.error("Error logging usage:", error);
-      alert("Failed to log usage");
-    }
-  };
-
   return (
-    <div style={{ padding: 20 }}>
-      <h2>User Services</h2>
+    <div className="page">
+      <div className="header">
+        <h1>User Dashboard 👤</h1>
+        <button className="btn btn-logout" onClick={logout}>
+          Logout
+        </button>
+      </div>
 
-      {loading && <p>Loading services...</p>}
+      {/* PRODUCTS */}
+      <h2>Products 🛍️</h2>
+      <div className="products">
+        {products.map(p => (
+          <div className="card" key={p.id}>
+            <h3>{p.name}</h3>
+            <p>{p.description}</p>
+            <b>₹{p.price}</b>
+          </div>
+        ))}
+      </div>
 
-      {!loading && services.length === 0 && (
-        <p style={{ color: "red" }}>
-          ❌ No services found.
-          <br />
-          Check Firestore → services collection.
-        </p>
-      )}
+      {/* SERVICES */}
+      <h2 style={{ marginTop: "2rem" }}>Services ⚙️</h2>
+      <div className="products">
+        {services.map(s => (
+          <div className="card" key={s.id}>
+            <h3>{s.name}</h3>
+            <p>{s.description}</p>
 
-      {!loading &&
-        services.map(service => (
-          <div
-            key={service.id}
-            style={{
-              border: "1px solid #ccc",
-              padding: 10,
-              marginBottom: 10,
-              borderRadius: 6,
-            }}
-          >
-            <b>{service.name}</b>
-            <p>{service.description}</p>
-
-            <button onClick={() => useService(service)}>
-              Use Service
+            <button
+              className="btn btn-primary"
+              onClick={() => navigate(s.serviceUrl)}
+            >
+              Open Service
             </button>
           </div>
         ))}
+      </div>
     </div>
   );
 };
 
-export default UserServices;
+export default UserPage;

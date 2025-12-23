@@ -7,6 +7,7 @@ import { getUserRole } from "./getUserRole";
 import Login from "./pages/Login";
 import AdminPage from "./pages/AdminPage";
 import UserPage from "./pages/UserPage";
+import ServicePage from "./pages/ServicePage";
 
 function App() {
   const [user, setUser] = useState(null);
@@ -33,8 +34,17 @@ function App() {
 
   return (
     <Routes>
-      {!user && <Route path="*" element={<Login />} />}
+      {/* LOGIN ROUTE — ALWAYS EXISTS */}
+      <Route path="/login" element={<Login />} />
 
+      {/* NOT LOGGED IN */}
+      {!user && (
+        <>
+          <Route path="*" element={<Navigate to="/login" />} />
+        </>
+      )}
+
+      {/* ADMIN */}
       {user && role === "admin" && (
         <>
           <Route path="/admin" element={<AdminPage />} />
@@ -42,9 +52,14 @@ function App() {
         </>
       )}
 
+      {/* USER */}
       {user && role === "user" && (
         <>
           <Route path="/user" element={<UserPage />} />
+          <Route
+            path="/services/:serviceSlug"
+            element={<ServicePage />}
+          />
           <Route path="*" element={<Navigate to="/user" />} />
         </>
       )}
